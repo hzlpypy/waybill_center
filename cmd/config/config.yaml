@@ -1,0 +1,28 @@
+model: debug # release debug
+server:
+  ip: 127.0.0.1
+  port: 8089
+  name: logic.waybill_center
+  ticker: 5 #min
+rabbitmq:
+  name: logic.rabbitmq
+  user: admin
+  pwd: admin
+mysql:
+  host: rm-bp18s7b20cb195c451o.mysql.rds.aliyuncs.com
+  port: 3306
+  user: hzl
+  pwd: hzl132773
+  db_name: demo1
+  charset: utf8mb4
+  conn_max_lifetime: 5
+  max_idle_conns: 10
+  max_Open_conns: 140
+  disable_foreign_key_constraint_when_migrating: false
+log:
+  access_path: ./log/access_log.txt
+  error_path: ./log/error_log.txt
+etcd:
+  ttl: 10
+order_center:
+  queue: order_queue

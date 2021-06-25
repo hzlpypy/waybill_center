@@ -1,0 +1,48 @@
+syntax = "proto3";
+package protobuf;
+
+option go_package="./;protobuf";
+
+//import "google/protobuf/empty.proto";
+
+
+service WaybillCenter {
+  // 获取运单信息
+  rpc ListWaybill(ListWaybillReq) returns (ListWaybillRes);
+  // 外卖员接单
+//  rpc OrderReceive(OrderReceiveReq) returns (google.protobuf.Empty);
+}
+
+message ListWaybillReq {
+    int32 page = 1;
+    int32 page_size = 2;
+    repeated string order_ids = 3;
+    bool find_all = 4;
+}
+
+message Waybill{
+  // 订单编号
+  string id = 1;
+  // 创建时间
+  int32 created = 2;
+  // 配送外卖员ID
+  string take_out_user_id = 3;
+  // 配送外卖员名称
+  string take_out_user_name = 4;
+  // 送达时间 若为0, 表示未送达
+  int32 delivery_time = 7;
+}
+
+message ListWaybillRes {
+  int32 page = 1;
+  int32 page_size = 2;
+  int32 total = 3;
+  repeated Waybill waybills = 4;
+}
+
+message OrderReceiveReq{
+  // 外卖员ID
+  string user_id = 1;
+  // 订单IDs
+  repeated string order_ids = 2;
+}
