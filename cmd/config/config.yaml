@@ -2,18 +2,19 @@ model: debug # release debug
 server:
   ip: 127.0.0.1
   port: 8089
-  name: logic.waybill_center
+  name: waybill_center
   ticker: 5 #min
 rabbitmq:
   name: logic.rabbitmq
   user: admin
   pwd: admin
 mysql:
+  name: logic.mysql
   host: rm-bp18s7b20cb195c451o.mysql.rds.aliyuncs.com
   port: 3306
   user: hzl
   pwd: hzl132773
-  db_name: demo1
+  db_name: waybill_center
   charset: utf8mb4
   conn_max_lifetime: 5
   max_idle_conns: 10
@@ -24,5 +25,11 @@ log:
   error_path: ./log/error_log.txt
 etcd:
   ttl: 10
+  ip: 127.0.0.1
+  port: 2379
 order_center:
   queue: order_queue
+  exchange: order_exchange
+  exchange_type: topic
+  routingKey: login.order
+  contentType : application/json

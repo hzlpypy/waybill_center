@@ -3,34 +3,56 @@ package router
 import (
 	"context"
 	"fmt"
-	"github.com/hzlpypy/waybill_center/waybill_server"
+	"github.com/hzlpypy/common/rabbitmq/topic"
 	"github.com/hzlpypy/waybill_center/init_service"
-	"google.golang.org/grpc"
+	"github.com/hzlpypy/waybill_center/internal/receive"
 	protos "github.com/hzlpypy/waybill_center/proto_info/protos"
+	"github.com/hzlpypy/waybill_center/waybill_server"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 	"log"
 	"net"
 	"strconv"
 )
 
 type initServiceConfig struct {
-	grpcPort int
-	InitService init_service.InitService
-
+	grpcPort    int
+	initService init_service.InitService
+	topicReq    *topic.TopicReq
+	l           *logrus.Logger
+	db          *gorm.DB
+	ctx         context.Context
 }
-func NewServiceConfig()  {
 
+func NewServiceConfig(grpcPort int, i init_service.InitService, topicReq *topic.TopicReq, db *gorm.DB, ctx context.Context, l *logrus.Logger) *initServiceConfig {
+	return &initServiceConfig{
+		grpcPort:    grpcPort,
+		initService: i,
+		topicReq:    topicReq,
+		l:           l,
+		db:          db,
+		ctx:         ctx,
+	}
 }
+
 //RunGrpcServer creates a gRPC server which has no service registered and has not
-func RunGrpcServer(isc *initServiceConfig) error {
+func (isc *initServiceConfig) RunGrpcServer() error {
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(filter))
 
-
 	protos.RegisterWaybillCenterServer(grpcServer, &waybill_server.WaybillServer{})
-
-	isc.InitService.InitVCTable()
+	topicReq := isc.topicReq
+	// init service
+	isc.initService.InitVCTable()
+	err := isc.initService.CreateExchangeAndBindQueue(isc.ctx, isc.topicReq)
+	if err != nil {
+		return err
+	}
+	// 开启监听队列
+	go receive.Receive(topicReq.Conn, topicReq.Queue.QueueName, isc.l, isc.db)
 	listen, err := net.Listen("tcp", ":"+strconv.Itoa(isc.grpcPort))
 	if err != nil {
 		log.Println(err)

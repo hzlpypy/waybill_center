@@ -1,0 +1,1 @@
+time="2021-06-29T17:53:09+08:00" level=error msg="order is already, ID=3044cc1ef1514c7688ec93d70d692785" func=github.com/hzlpypy/waybill_center/internal/receive.Receive file="/home/huangzhilin/go/src/waybill_center/internal/receive/index.go:61"

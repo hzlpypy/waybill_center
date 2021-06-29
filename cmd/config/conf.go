@@ -22,6 +22,7 @@ type Config struct {
 		Pwd  string `yaml:"pwd"`
 	} `yaml:"rabbitmq"`
 	Mysql struct {
+		Name                                     string `yaml:"name"`
 		Host                                     string `yaml:"host"`
 		Port                                     int    `yaml:"port"`
 		User                                     string `yaml:"user"`
@@ -38,10 +39,16 @@ type Config struct {
 		ErrorPath  string `yaml:"error_path"`
 	} `yaml:"log"`
 	Etcd struct {
-		Ttl int `yaml:"ttl"`
+		Ttl  int    `yaml:"ttl"`
+		Ip   string `yaml:"ip"`
+		Port int    `yaml:"port"`
 	} `yaml:"etcd"`
-	OrderCenter struct{
-		Queue string `yaml:"queue"`
+	OrderCenter struct {
+		Queue        string `yaml:"queue"`
+		Exchange     string `yaml:"exchange"`
+		ExchangeType string `yaml:"exchange_type"`
+		RoutingKey   string `yaml:"routingKey"`
+		ContentType  string `yaml:"contentType"`
 	} `yaml:"order_center"`
 }
 

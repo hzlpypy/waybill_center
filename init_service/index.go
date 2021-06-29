@@ -1,6 +1,8 @@
 package init_service
 
 import (
+	"context"
+	"github.com/hzlpypy/common/rabbitmq/topic"
 	"github.com/hzlpypy/waybill_center/model"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -10,19 +12,20 @@ import (
 
 type Init struct {
 	db *gorm.DB
-	l *logrus.Logger
+	l  *logrus.Logger
 }
 
 func NewInit(db *gorm.DB, l *logrus.Logger) (*Init, error) {
 	// init conf
 	return &Init{
-		db:   db,
-		l: l,
+		db: db,
+		l:  l,
 	}, nil
 }
 
 type InitService interface {
 	InitVCTable()
+	CreateExchangeAndBindQueue(ctx context.Context, req *topic.TopicReq) error
 }
 
 var _ InitService = (*Init)(nil)
@@ -63,4 +66,24 @@ func (i *Init) checkAndCreateTable(table interface{}, createChan chan error) {
 	createChan <- nil
 	return
 
+}
+
+// TODO：迁移到name_service
+func (i *Init) CreateExchangeAndBindQueue(c context.Context, req *topic.TopicReq) error {
+	ti, err := topic.NewTopicReq(c, req)
+	if err != nil {
+		i.l.WithField("sendMsg", "amqp NewTopicReq error").Error(err)
+		return err
+	}
+	err = ti.CreateExchange()
+	if err != nil {
+		i.l.WithField("sendMsg", "amqp CreateExchange error").Error(err)
+		return err
+	}
+	err = ti.QueueDeclareAndBindRoutingKey()
+	if err != nil {
+		i.l.WithField("sendMsg", "amqp QueueDeclareAndBindRoutingKey error").Error(err)
+		return err
+	}
+	return nil
 }
