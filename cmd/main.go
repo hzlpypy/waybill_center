@@ -100,7 +100,6 @@ func main() {
 			continue
 		}
 		defer conn.Close()
-		defer fmt.Println("shutdown shutdown shutdown shutdown shutdown")
 		rbConnPools = append(rbConnPools, conn)
 	}
 	// db
@@ -139,19 +138,36 @@ func main() {
 	}
 	conn := rbConnPools[0]
 	ch, _ := conn.Channel()
-	of := cf.OrderCenter
+	occ := cf.OrderCenter.Consumer
+	ocd := cf.OrderCenter.Dead
 	ctx := context.Background()
 	defer ctx.Done()
 	err = router.NewServiceConfig(cf.Server.Port, i, &topic.TopicReq{
 		Conn:         rbConnPools[0],
 		Ch:           ch,
-		ExchangeName: of.Exchange,
-		ExchangeType: of.ExchangeType,
+		ExchangeName: occ.Exchange,
+		ExchangeType: occ.ExchangeType,
 		Durable:      true,
-		ContentType:  of.ContentType,
-		RoutingKey:   of.RoutingKey,
+		ContentType:  occ.ContentType,
+		RoutingKey:   occ.RoutingKey,
 		Queue: &topic.Queue{
-			QueueName:       of.Queue,
+			QueueName: occ.Queue,
+			QueueDeclareMap: map[string]interface{}{
+				"x-max-length":              10,
+				"x-dead-letter-exchange":    ocd.Exchange,
+				"x-dead-letter-routing-key": ocd.RoutingKey,
+			},
+		},
+	}, &topic.TopicReq{
+		Conn:         rbConnPools[0],
+		Ch:           ch,
+		ExchangeName: ocd.Exchange,
+		ExchangeType: ocd.ExchangeType,
+		Durable:      true,
+		ContentType:  ocd.ContentType,
+		RoutingKey:   ocd.RoutingKey,
+		Queue: &topic.Queue{
+			QueueName:       ocd.Queue,
 			QueueDeclareMap: map[string]interface{}{"x-max-length": 10},
 		},
 	}, db, ctx, &errorLog).RunGrpcServer()

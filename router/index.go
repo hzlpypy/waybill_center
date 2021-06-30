@@ -20,22 +20,24 @@ import (
 )
 
 type initServiceConfig struct {
-	grpcPort    int
-	initService init_service.InitService
-	topicReq    *topic.TopicReq
-	l           *logrus.Logger
-	db          *gorm.DB
-	ctx         context.Context
+	grpcPort         int
+	initService      init_service.InitService
+	topicReqConsumer *topic.TopicReq
+	topicReqDead     *topic.TopicReq
+	l                *logrus.Logger
+	db               *gorm.DB
+	ctx              context.Context
 }
 
-func NewServiceConfig(grpcPort int, i init_service.InitService, topicReq *topic.TopicReq, db *gorm.DB, ctx context.Context, l *logrus.Logger) *initServiceConfig {
+func NewServiceConfig(grpcPort int, i init_service.InitService, topicReqConsumer, topicReqDead *topic.TopicReq, db *gorm.DB, ctx context.Context, l *logrus.Logger) *initServiceConfig {
 	return &initServiceConfig{
-		grpcPort:    grpcPort,
-		initService: i,
-		topicReq:    topicReq,
-		l:           l,
-		db:          db,
-		ctx:         ctx,
+		grpcPort:         grpcPort,
+		initService:      i,
+		topicReqConsumer: topicReqConsumer,
+		topicReqDead:     topicReqDead,
+		l:                l,
+		db:               db,
+		ctx:              ctx,
 	}
 }
 
@@ -44,15 +46,23 @@ func (isc *initServiceConfig) RunGrpcServer() error {
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(filter))
 
 	protos.RegisterWaybillCenterServer(grpcServer, &waybill_server.WaybillServer{})
-	topicReq := isc.topicReq
+	topicReqConsumer := isc.topicReqConsumer
+	topicReqDead := isc.topicReqDead
 	// init service
 	isc.initService.InitVCTable()
-	err := isc.initService.CreateExchangeAndBindQueue(isc.ctx, isc.topicReq)
+	// 创建死信队列
+	err := isc.initService.CreateExchangeAndBindQueue(isc.ctx, topicReqDead)
+	if err != nil {
+		return err
+	}
+	// 创建订单接受交换机和队列并绑定死信队列
+	err = isc.initService.CreateExchangeAndBindQueue(isc.ctx, topicReqConsumer)
 	if err != nil {
 		return err
 	}
 	// 开启监听队列
-	go receive.Receive(topicReq.Conn, topicReq.Queue.QueueName, isc.l, isc.db)
+	go receive.ReceiveConsumer(topicReqConsumer.Conn, topicReqConsumer.Queue.QueueName, isc.l, isc.db)
+	go receive.ReceiveDead(topicReqDead.Conn, topicReqDead.Queue.QueueName, isc.l, isc.db)
 	listen, err := net.Listen("tcp", ":"+strconv.Itoa(isc.grpcPort))
 	if err != nil {
 		log.Println(err)

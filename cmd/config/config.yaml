@@ -28,8 +28,15 @@ etcd:
   ip: 127.0.0.1
   port: 2379
 order_center:
-  queue: order_queue
-  exchange: order_exchange
-  exchange_type: topic
-  routingKey: login.order
-  contentType : application/json
+  consumer:
+    queue: order_queue
+    exchange: order_exchange
+    exchange_type: topic
+    routingKey: login.order
+    contentType : application/json
+  dead:
+    queue: dead_order_queue
+    exchange: dead_order_exchange
+    exchange_type: topic
+    routingKey: login.dead_order
+    contentType: application/json

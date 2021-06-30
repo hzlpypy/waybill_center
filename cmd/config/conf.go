@@ -44,11 +44,20 @@ type Config struct {
 		Port int    `yaml:"port"`
 	} `yaml:"etcd"`
 	OrderCenter struct {
-		Queue        string `yaml:"queue"`
-		Exchange     string `yaml:"exchange"`
-		ExchangeType string `yaml:"exchange_type"`
-		RoutingKey   string `yaml:"routingKey"`
-		ContentType  string `yaml:"contentType"`
+		Consumer struct {
+			Queue        string `yaml:"queue"`
+			Exchange     string `yaml:"exchange"`
+			ExchangeType string `yaml:"exchange_type"`
+			RoutingKey   string `yaml:"routingKey"`
+			ContentType  string `yaml:"contentType"`
+		} `yaml:"consumer"`
+		Dead struct {
+			Queue        string `yaml:"queue"`
+			Exchange     string `yaml:"exchange"`
+			ExchangeType string `yaml:"exchange_type"`
+			RoutingKey   string `yaml:"routingKey"`
+			ContentType  string `yaml:"contentType"`
+		} `yaml:"dead"`
 	} `yaml:"order_center"`
 }
 
