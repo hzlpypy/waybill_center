@@ -39,20 +39,21 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	serviceName := nameServiceMap[cf.Server.Name]
+	registerDir := nameServiceMap[cf.Server.Name]
+	serverVersion := "1.0"
 	lbConfig := &etcd3.Config{
 		EtcdConfig: clientv3.Config{
 			Endpoints:   []string{fmt.Sprintf("http://%s:%d", cf.Etcd.Ip, cf.Etcd.Port)},
 			DialTimeout: 5 * time.Second,
 		},
-		RegistryDir: cf.Server.Name,
+		RegistryDir: registerDir,
 		Ttl:         time.Duration(cf.Etcd.Ttl) * time.Second,
 	}
 	register, _ := etcd3.NewRegistrar(lbConfig)
 	service := &registry.ServiceInfo{
 		InstanceId: *nodeID,
-		Name:       serviceName,
-		Version:    "1.0",
+		Name:       cf.Server.Name,
+		Version:    serverVersion,
 		Address:    fmt.Sprintf("%s:%d", ip.String(), cf.Server.Port),
 		Metadata:   metadata.Pairs(common.WeightKey, "1"),
 	}
@@ -81,7 +82,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//accessLog := *l.Access()
+	accessLog := *l.Access()
 	errorLog := *l.Error()
 
 	// conn rabbitmq || mysql
@@ -170,7 +171,7 @@ func main() {
 			QueueName:       ocd.Queue,
 			QueueDeclareMap: map[string]interface{}{"x-max-length": 10},
 		},
-	}, db, ctx, &errorLog).RunGrpcServer()
+	}, db, ctx, &errorLog, &accessLog).RunGrpcServer()
 	if err != nil {
 		log.Fatal(err)
 	}

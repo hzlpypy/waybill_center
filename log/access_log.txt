@@ -1,0 +1,2 @@
+time="2021-07-01T14:37:53+08:00" level=info msg="192.168.31.114:54872 -> /protobuf.WaybillCenter/ListWaybill [application/grpc]" func="github.com/hzlpypy/waybill_center/router.(*initServiceConfig).logReqUri" file="/home/huangzhilin/go/src/waybill_center/router/index.go:103"
+time="2021-07-01T14:42:31+08:00" level=info msg="192.168.31.114:55188 -> /protobuf.WaybillCenter/ListWaybill [application/grpc]" func="github.com/hzlpypy/waybill_center/router.(*initServiceConfig).logReqUri" file="/home/huangzhilin/go/src/waybill_center/router/index.go:103"

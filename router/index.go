@@ -24,18 +24,20 @@ type initServiceConfig struct {
 	initService      init_service.InitService
 	topicReqConsumer *topic.TopicReq
 	topicReqDead     *topic.TopicReq
-	l                *logrus.Logger
+	el               *logrus.Logger
+	al               *logrus.Logger
 	db               *gorm.DB
 	ctx              context.Context
 }
 
-func NewServiceConfig(grpcPort int, i init_service.InitService, topicReqConsumer, topicReqDead *topic.TopicReq, db *gorm.DB, ctx context.Context, l *logrus.Logger) *initServiceConfig {
+func NewServiceConfig(grpcPort int, i init_service.InitService, topicReqConsumer, topicReqDead *topic.TopicReq, db *gorm.DB, ctx context.Context, el, al *logrus.Logger) *initServiceConfig {
 	return &initServiceConfig{
 		grpcPort:         grpcPort,
 		initService:      i,
 		topicReqConsumer: topicReqConsumer,
 		topicReqDead:     topicReqDead,
-		l:                l,
+		el:               el,
+		al:               al,
 		db:               db,
 		ctx:              ctx,
 	}
@@ -43,9 +45,11 @@ func NewServiceConfig(grpcPort int, i init_service.InitService, topicReqConsumer
 
 //RunGrpcServer creates a gRPC server which has no service registered and has not
 func (isc *initServiceConfig) RunGrpcServer() error {
-	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(filter))
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(isc.filter))
 
-	protos.RegisterWaybillCenterServer(grpcServer, &waybill_server.WaybillServer{})
+	protos.RegisterWaybillCenterServer(grpcServer, &waybill_server.WaybillServer{
+		Db: isc.db,
+	})
 	topicReqConsumer := isc.topicReqConsumer
 	topicReqDead := isc.topicReqDead
 	// init service
@@ -61,8 +65,8 @@ func (isc *initServiceConfig) RunGrpcServer() error {
 		return err
 	}
 	// 开启监听队列
-	go receive.ReceiveConsumer(topicReqConsumer.Conn, topicReqConsumer.Queue.QueueName, isc.l, isc.db)
-	go receive.ReceiveDead(topicReqDead.Conn, topicReqDead.Queue.QueueName, isc.l, isc.db)
+	go receive.ReceiveConsumer(topicReqConsumer.Conn, topicReqConsumer.Queue.QueueName, isc.el, isc.db)
+	go receive.ReceiveDead(topicReqDead.Conn, topicReqDead.Queue.QueueName, isc.el, isc.db)
 	listen, err := net.Listen("tcp", ":"+strconv.Itoa(isc.grpcPort))
 	if err != nil {
 		log.Println(err)
@@ -77,18 +81,18 @@ func (isc *initServiceConfig) RunGrpcServer() error {
 	return nil
 }
 
-func filter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+func (isc *initServiceConfig) filter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = status.Errorf(500, fmt.Sprintf("panic: %v", r))
-			log.Printf("%v", err)
+			isc.el.Errorf("%v", err)
 		}
 	}()
-	logReqUri(ctx, info.FullMethod)
+	isc.logReqUri(ctx, info.FullMethod)
 	return handler(ctx, req)
 }
 
-func logReqUri(ctx context.Context, reqUri string) {
+func (isc *initServiceConfig) logReqUri(ctx context.Context, reqUri string) {
 	var ip string
 	md, _ := metadata.FromIncomingContext(ctx)
 	contentType := md.Get("content-type")[0]
@@ -96,12 +100,12 @@ func logReqUri(ctx context.Context, reqUri string) {
 		ip = val[0]
 		p, ok := peer.FromContext(ctx)
 		if ok {
-			log.Printf("%v -> %v%v [%v]", p.Addr.String(), ip, reqUri, contentType)
+			isc.al.Infof("%v -> %v%v [%v]", p.Addr.String(), ip, reqUri, contentType)
 		} else {
-			log.Printf("ip is none: %v", ctx)
+			isc.al.Infof("ip is none: %v", ctx)
 		}
 	} else {
-		log.Printf("ip is none: %v", ctx)
+		isc.al.Infof("ip is none: %v", ctx)
 	}
 
 }
