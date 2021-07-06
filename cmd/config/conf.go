@@ -1,11 +1,11 @@
 package config
 
 import (
-	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
-	"os"
+	"path"
+	"runtime"
 )
 
 type Config struct {
@@ -61,9 +61,13 @@ type Config struct {
 	} `yaml:"order_center"`
 }
 
+func currentDir() string {
+	_, filename, _, _ := runtime.Caller(0) // get current filepath in runtime
+	return path.Dir(filename)
+}
+
 func NewConfig() *Config {
-	fmt.Println(os.Getwd())
-	bytes, err := ioutil.ReadFile("cmd/config/config.yaml")
+	bytes, err := ioutil.ReadFile(path.Join(currentDir(), "config.yaml"))
 	if err != nil {
 		log.Fatal(err)
 	}
