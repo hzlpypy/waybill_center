@@ -10,10 +10,10 @@ rabbitmq:
   pwd: admin
 mysql:
   name: logic.mysql
-  host: rm-bp18s7b20cb195c451o.mysql.rds.aliyuncs.com
+  host: host
   port: 3306
-  user: hzl
-  pwd: hzl132773
+  user: user
+  pwd: pwd
   db_name: waybill_center
   charset: utf8mb4
   conn_max_lifetime: 5
